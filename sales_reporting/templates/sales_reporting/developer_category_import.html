@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>D365 Category Import</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f6f8;
+            color: #202124;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            margin-bottom: 24px;
+            padding: 28px;
+            background: white;
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .description {
+            color: #5f6368;
+            line-height: 1.5;
+        }
+
+        input[type="file"] {
+            box-sizing: border-box;
+            width: 100%;
+            margin: 10px 0;
+            padding: 15px;
+            border: 1px dashed #9aa0a6;
+            border-radius: 8px;
+        }
+
+        .replace-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff8e1;
+            border: 1px solid #ead79d;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 6px;
+            background: #1a73e8;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .message {
+            margin-bottom: 18px;
+            padding: 14px;
+            border-radius: 6px;
+            background: #e8f5e9;
+        }
+
+        .message.error {
+            background: #fff1f1;
+            color: #8a1c1c;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 10px 18px;
+        }
+
+        .summary-label {
+            font-weight: bold;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .errorlist {
+            color: #b3261e;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <a
+            class="nav-link"
+            href="{% url 'sales_reporting:developer_inspector' %}"
+        >
+            ← Workbook inspector
+        </a>
+
+        <section class="card">
+            <h1>Developer Category Import</h1>
+
+            <p class="description">
+                Import the D365 category totals from one workbook.
+                This creates the store, sales import, categories,
+                and monthly category result records.
+            </p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div
+                        class="message
+                        {% if message.tags == 'error' %}error{% endif %}"
+                    >
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form
+                method="post"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+
+                {{ form.workbook.label_tag }}
+                {{ form.workbook }}
+                {{ form.workbook.help_text }}
+                {{ form.workbook.errors }}
+
+                <label class="replace-option">
+                    <input
+                        type="checkbox"
+                        name="replace_existing"
+                    >
+
+                    <span>
+                        Replace an existing import for the same
+                        store and reporting month.
+                    </span>
+                </label>
+
+                <button type="submit">
+                    Import category results
+                </button>
+            </form>
+        </section>
+
+        {% if import_result %}
+            <section class="card">
+                <h2>Import summary</h2>
+
+                <div class="summary-grid">
+                    <div class="summary-label">File</div>
+                    <div>{{ import_result.source_filename }}</div>
+
+                    <div class="summary-label">Store</div>
+                    <div>{{ import_result.store_number }}</div>
+
+                    <div class="summary-label">
+                        Reporting month
+                    </div>
+                    <div>
+                        {{ import_result.reporting_month|date:"F Y" }}
+                    </div>
+
+                    <div class="summary-label">
+                        Category results
+                    </div>
+                    <div>
+                        {{ import_result.category_results_created }}
+                    </div>
+
+                    <div class="summary-label">
+                        New categories
+                    </div>
+                    <div>
+                        {{ import_result.categories_created }}
+                    </div>
+
+                    <div class="summary-label">
+                        Updated categories
+                    </div>
+                    <div>
+                        {{ import_result.categories_updated }}
+                    </div>
+
+                    <div class="summary-label">
+                        Replaced prior import
+                    </div>
+                    <div>
+                        {{ import_result.replaced_existing_import|yesno:"Yes,No" }}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

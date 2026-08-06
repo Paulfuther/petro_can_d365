@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>D365 Workbook Inspector</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f6f8;
+            color: #202124;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .card {
+            margin-bottom: 24px;
+            padding: 24px;
+            background: white;
+            border: 1px solid #dfe3e8;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .description {
+            color: #5f6368;
+            line-height: 1.5;
+        }
+
+        input[type="file"] {
+            box-sizing: border-box;
+            width: 100%;
+            margin: 8px 0;
+            padding: 14px;
+            border: 1px dashed #9aa0a6;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        button {
+            margin-top: 16px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 6px;
+            background: #1a73e8;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .message {
+            margin-bottom: 18px;
+            padding: 14px;
+            border-radius: 6px;
+            background: #e8f5e9;
+        }
+
+        .error {
+            background: #fff1f1;
+            color: #8a1c1c;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 10px 18px;
+        }
+
+        .metadata-label {
+            font-weight: bold;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #dfe3e8;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #eef2f6;
+        }
+
+        .row-number {
+            width: 70px;
+            text-align: right;
+            color: #5f6368;
+            font-weight: bold;
+        }
+
+        .empty-cell {
+            background: #fafafa;
+        }
+
+        .cell-coordinate {
+            display: block;
+            margin-bottom: 4px;
+            color: #80868b;
+            font-size: 11px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-bottom: 18px;
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .helptext {
+            display: block;
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .errorlist {
+            color: #b3261e;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <a
+            class="nav-link"
+            href="{% url 'sales_reporting:upload' %}"
+        >
+            ← Standard upload page
+        </a>
+
+        <section class="card">
+            <h1>D365 Developer Workbook Inspector</h1>
+
+            <p class="description">
+                Upload one workbook to inspect its metadata and the
+                first 150 populated rows from columns A through I.
+                Nothing will be written to the database.
+            </p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div
+                        class="message
+                        {% if message.tags == 'error' %}error{% endif %}"
+                    >
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form
+                method="post"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+
+                {{ form.workbook.label_tag }}
+                {{ form.workbook }}
+                {{ form.workbook.help_text }}
+                {{ form.workbook.errors }}
+
+                <button type="submit">
+                    Inspect workbook
+                </button>
+            </form>
+        </section>
+
+        {% if metadata %}
+            <section class="card">
+                <h2>Metadata</h2>
+
+                <div class="metadata-grid">
+                    <div class="metadata-label">Filename</div>
+                    <div>{{ metadata.source_filename }}</div>
+
+                    <div class="metadata-label">Worksheet</div>
+                    <div>{{ metadata.worksheet_name }}</div>
+
+                    <div class="metadata-label">Store</div>
+                    <div>
+                        {{ metadata.store_number }}
+                        — {{ metadata.store_name }}
+                    </div>
+
+                    <div class="metadata-label">From date</div>
+                    <div>{{ metadata.from_date }}</div>
+
+                    <div class="metadata-label">To date</div>
+                    <div>{{ metadata.to_date }}</div>
+
+                    <div class="metadata-label">Reporting month</div>
+                    <div>
+                        {{ metadata.reporting_month|date:"F Y" }}
+                    </div>
+
+                    <div class="metadata-label">Channel</div>
+                    <div>{{ metadata.channel }}</div>
+                </div>
+            </section>
+        {% endif %}
+
+        {% if inspection %}
+            <section class="card">
+                <h2>Worksheet structure</h2>
+
+                <p class="description">
+                    Showing {{ inspection.rows|length }}
+                    populated rows from the first 150 Excel rows.
+                </p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Row</th>
+                                <th>A</th>
+                                <th>B</th>
+                                <th>C</th>
+                                <th>D</th>
+                                <th>E</th>
+                                <th>F</th>
+                                <th>G</th>
+                                <th>H</th>
+                                <th>I</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for worksheet_row in inspection.rows %}
+                                <tr>
+                                    <td class="row-number">
+                                        {{ worksheet_row.row_number }}
+                                    </td>
+
+                                    {% for column_name in "ABCDEFGHI" %}
+                                        <td>
+                                            {% for cell in worksheet_row.cells %}
+                                                {% if cell.column == column_name %}
+                                                    <span class="cell-coordinate">
+                                                        {{ cell.coordinate }}
+                                                    </span>
+
+                                                    {{ cell.value }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

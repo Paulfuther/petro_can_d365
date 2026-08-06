@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Category Trend</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+    body {
+        margin: 0;
+        background: #f4f6f8;
+        color: #202124;
+        font-family: Arial, sans-serif;
+    }
+
+    .container {
+        max-width: 1450px;
+        margin: 36px auto;
+        padding: 0 24px;
+    }
+
+    .card {
+        margin-bottom: 24px;
+        padding: 24px;
+        background: #ffffff;
+        border: 1px solid #dfe3e8;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    h1,
+    h2 {
+        margin-top: 0;
+    }
+
+    .description {
+        color: #5f6368;
+    }
+
+    /* Navigation */
+
+    .nav {
+        display: flex;
+        gap: 18px;
+        margin-bottom: 20px;
+    }
+
+    .nav a,
+    .breadcrumbs a {
+        color: #1a73e8;
+        text-decoration: none;
+    }
+
+    .nav a:hover,
+    .breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+
+    /* Filters */
+
+    .filters {
+        display: grid;
+        grid-template-columns:
+            minmax(240px, 2fr)
+            minmax(100px, 0.7fr)
+            minmax(120px, 0.8fr)
+            minmax(150px, 1fr)
+            auto;
+        gap: 16px;
+        align-items: end;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: bold;
+    }
+
+    select {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #c7cdd4;
+        border-radius: 6px;
+        background: #ffffff;
+    }
+
+    button {
+        padding: 12px 20px;
+        border: 0;
+        border-radius: 6px;
+        background: #1a73e8;
+        color: #ffffff;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #155fc0;
+    }
+
+    /* Breadcrumbs */
+
+    .breadcrumbs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 18px;
+        color: #5f6368;
+        font-size: 14px;
+    }
+
+    .breadcrumb-separator {
+        color: #9aa0a6;
+    }
+
+    /* Collapsible category breakdown */
+
+    .breakdown-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .breakdown-summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 22px 24px;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+    }
+
+    .breakdown-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .breakdown-summary::after {
+        content: "⌄";
+        margin-left: 12px;
+        color: #5f6368;
+        font-size: 22px;
+        line-height: 1;
+        transition: transform 0.15s ease;
+    }
+
+    details[open] > .breakdown-summary::after {
+        transform: rotate(180deg);
+    }
+
+    .breakdown-summary:hover {
+        background: #f8fafc;
+    }
+
+    .breakdown-title {
+        display: block;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .breakdown-count {
+        display: block;
+        margin-top: 4px;
+        color: #5f6368;
+        font-size: 13px;
+    }
+
+    .breakdown-toggle-label {
+        margin-left: auto;
+        color: #5f6368;
+        font-size: 14px;
+    }
+
+    .breakdown-content {
+        padding: 0 24px 24px;
+        border-top: 1px solid #eef2f6;
+    }
+
+    .category-grid {
+        display: grid;
+        grid-template-columns:
+            repeat(
+                auto-fit,
+                minmax(230px, 1fr)
+            );
+        gap: 12px;
+        padding-top: 20px;
+    }
+
+    .category-link {
+        display: block;
+        padding: 16px;
+        border: 1px solid #dfe3e8;
+        border-radius: 8px;
+        background: #ffffff;
+        color: inherit;
+        text-decoration: none;
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease,
+            transform 0.15s ease;
+    }
+
+    .category-link:hover {
+        border-color: #1a73e8;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .category-code {
+        margin-bottom: 5px;
+        color: #5f6368;
+        font-size: 13px;
+    }
+
+    .category-name {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+
+    .category-total {
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .drilldown-note {
+        margin: 14px 0 0;
+        color: #5f6368;
+        font-size: 13px;
+    }
+
+    /* Chart */
+
+    .chart-wrapper {
+        position: relative;
+        min-height: 430px;
+    }
+
+    /* Table */
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        min-width: 1150px;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    th,
+    td {
+        padding: 10px;
+        border: 1px solid #dfe3e8;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #eef2f6;
+    }
+
+    th:first-child,
+    td:first-child {
+        position: sticky;
+        left: 0;
+        text-align: left;
+        background: #ffffff;
+        font-weight: bold;
+    }
+
+    thead th:first-child {
+        background: #eef2f6;
+    }
+
+    .empty {
+        color: #9aa0a6;
+    }
+
+    /* Responsive */
+
+    @media (max-width: 850px) {
+        .filters {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .breakdown-summary {
+            align-items: flex-start;
+        }
+
+        .breakdown-toggle-label {
+            display: none;
+        }
+
+        .breakdown-title {
+            font-size: 20px;
+        }
+    }
+</style>
+</head>
+
+<body>
+    <main class="container">
+        <nav class="nav">
+            <a href="{% url 'sales_reporting:upload' %}">
+                Upload reports
+            </a>
+
+            <a href="{% url 'admin:index' %}">
+                Admin
+            </a>
+        </nav>
+
+        <section class="card">
+            <h1>Category Trend</h1>
+
+            <!------------------ Bread Crumbs for Category Drill Down ------------>
+                {% if breadcrumbs %}
+                    <div class="breadcrumbs">
+                                        <a
+                    href="{% url 'sales_reporting:category_trend' %}?category=2320&year={{ selected_year }}&to_month={{ selected_to_month }}&metric={{ selected_metric }}"
+                >
+                    Category Trend
+                </a>
+
+                        {% for breadcrumb in breadcrumbs %}
+                            <span class="breadcrumb-separator">
+                                ›
+                            </span>
+
+                            {% if breadcrumb.code == selected_category.code %}
+                                <strong>
+                                    {{ breadcrumb.name }}
+                                </strong>
+                            {% else %}
+                                <a
+                                    href="{% url 'sales_reporting:category_trend' %}?category={{ breadcrumb.code }}&year={{ selected_year }}&to_month={{ selected_to_month }}&metric={{ selected_metric }}"
+                                >
+                                    {{ breadcrumb.name }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+{% endif %}
+
+<!--------------------------------------------------------------------------->
+
+            <p class="description">
+                Compare monthly category performance across stores.
+            </p>
+
+            <form method="get" class="filters">
+                <div>
+                    <label for="category">
+                        Category
+                    </label>
+
+                    <select
+                        id="category"
+                        name="category"
+                    >
+                        {% for category in categories %}
+                            <option
+                                value="{{ category.code }}"
+                                {% if category.code == selected_category_code %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category.code }} —
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="year">
+                        Year
+                    </label>
+
+                    <select id="year" name="year">
+                        {% for year in available_years %}
+                            <option
+                                value="{{ year }}"
+                                {% if year == selected_year %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                   <div>
+    <label for="to_month">
+        Data through
+    </label>
+
+    <select id="to_month" name="to_month">
+        {% for month_number, month_name in month_options %}
+            <option
+                value="{{ month_number }}"
+                {% if month_number == selected_to_month %}
+                    selected
+                {% endif %}
+            >
+                {{ month_name }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+
+
+
+                <div>
+                    <label for="metric">
+                        Metric
+                    </label>
+
+                    <select id="metric" name="metric">
+                        {% for value, label in metric_options.items %}
+                            <option
+                                value="{{ value }}"
+                                {% if value == selected_metric %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit">
+                    Apply filters
+                </button>
+            </form>
+        </section>
+
+<!-------------------------------------------------------------------------->
+{% if selected_category and child_categories %}
+    <section class="card breakdown-card">
+        <details>
+            <summary class="breakdown-summary">
+                <div>
+                    <span class="breakdown-title">
+                        {{ selected_category.name }} breakdown
+                    </span>
+
+                    <span class="breakdown-count">
+                        {{ child_categories|length }}
+                        categor{{ child_categories|length|pluralize:"y,ies" }}
+                    </span>
+                </div>
+
+                <span class="breakdown-toggle-label">
+                    Show / hide
+                </span>
+            </summary>
+
+            <div class="breakdown-content">
+                <div class="category-grid">
+                    {% for row in child_categories %}
+                        <a
+                            class="category-link"
+                            href="{% url 'sales_reporting:category_trend' %}?category={{ row.category.code }}&year={{ selected_year }}&to_month={{ selected_to_month }}&metric={{ selected_metric }}"
+                        >
+                            <div class="category-code">
+                                {{ row.category.code }}
+                            </div>
+
+                            <div class="category-name">
+                                {{ row.category.name }}
+                            </div>
+
+                            <div class="category-total">
+                                {% if selected_metric == "quantity" %}
+                                    {{ row.total|floatformat:0 }}
+                                {% else %}
+                                    ${{ row.total|floatformat:2 }}
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <p class="drilldown-note">
+                    Totals include all stores for the selected year
+                    through the selected reporting month.
+                </p>
+            </div>
+        </details>
+    </section>
+{% endif %}
+
+<!--------------------------------------------------------------------------------------->
+
+<!--------------------------------------------------------------------------------------->
+{% if opportunity_rows %}
+    <section class="card">
+        <div class="opportunity-heading">
+            <div>
+                <h2>Store Opportunity Analysis</h2>
+
+                <p class="description">
+                    {{ selected_category.name }}
+                    as a share of
+                    {{ opportunity_parent.name }}.
+                </p>
+            </div>
+
+            <div class="benchmark-box">
+                <span class="benchmark-label">
+                    Chain benchmark
+                </span>
+
+                <strong class="benchmark-value">
+                    {{ chain_share|floatformat:1 }}%
+                </strong>
+            </div>
+        </div>
+
+        <div class="opportunity-summary">
+            <div class="summary-stat">
+                <span>Selected segment</span>
+
+                <strong>
+                    {{ selected_category.name }}
+                </strong>
+            </div>
+
+            <div class="summary-stat">
+                <span>Comparison category</span>
+
+                <strong>
+                    {{ opportunity_parent.name }}
+                </strong>
+            </div>
+
+            <div class="summary-stat">
+                <span>Potential to chain average</span>
+
+                <strong>
+                    {% if selected_metric == "quantity" %}
+                        {{ total_opportunity|floatformat:0 }}
+                        units
+                    {% else %}
+                        ${{ total_opportunity|floatformat:2 }}
+                    {% endif %}
+                </strong>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="opportunity-table">
+                <thead>
+                    <tr>
+                        <th>Store</th>
+                        <th>Current</th>
+                        <th>Parent total</th>
+                        <th>Store mix</th>
+                        <th>Chain mix</th>
+                        <th>Expected</th>
+                        <th>Opportunity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in opportunity_rows %}
+                        <tr>
+                            <td>
+                                {{ row.store_number }}
+                            </td>
+
+                            <td>
+                                {% if selected_metric == "quantity" %}
+                                    {{ row.actual|floatformat:0 }}
+                                {% else %}
+                                    ${{ row.actual|floatformat:2 }}
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if selected_metric == "quantity" %}
+                                    {{ row.parent_total|floatformat:0 }}
+                                {% else %}
+                                    ${{ row.parent_total|floatformat:2 }}
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if row.store_share_percentage is not None %}
+                                    {{ row.store_share_percentage|floatformat:1 }}%
+                                {% else %}
+                                    <span class="empty">—</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                               {{ chain_share_percentage|floatformat:1 }}%
+                            </td>
+
+                            <td>
+                                {% if selected_metric == "quantity" %}
+                                    {{ row.expected|floatformat:0 }}
+                                {% else %}
+                                    ${{ row.expected|floatformat:2 }}
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if selected_metric == "quantity" %}
+                                    {{ row.opportunity|floatformat:0 }}
+                                {% else %}
+                                    ${{ row.opportunity|floatformat:2 }}
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span
+                                    class="
+                                        opportunity-status
+                                        status-{{ row.status|slugify }}
+                                    "
+                                >
+                                    {{ row.status }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <p class="drilldown-note">
+            Opportunity estimates the additional selected metric
+            required for each store to reach the chain’s current
+            category mix. It is a benchmark, not a sales forecast.
+        </p>
+    </section>
+{% endif %}
+<!------------------------------------------------------------------------------------->
+        <section class="card">
+            {% if selected_category %}
+                <h2>
+    {{ selected_category.code }}
+    — {{ selected_category.name }}
+    — {{ selected_metric_label }}
+</h2>
+
+                <div class="chart-wrapper">
+                    <canvas id="categoryTrendChart"></canvas>
+                </div>
+            {% else %}
+                <p>
+                    The selected category could not be found.
+                </p>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>Monthly detail</h2>
+
+            {% if table_rows %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Store</th>
+
+                                {% for month in month_labels %}
+                                    <th>{{ month }}</th>
+                                {% endfor %}
+
+                                <th>Year total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in table_rows %}
+                                <tr>
+                                    <td>
+                                        {{ row.store_number }}
+                                    </td>
+
+                                    {% for value in row.values %}
+                                        <td>
+                                            {% if value is not None %}
+                                                {% if selected_metric == "quantity" %}
+                                                    {{ value|floatformat:0 }}
+                                                {% else %}
+                                                    {{ value|floatformat:2 }}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="empty">—</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+
+                                    <td>
+                                        {% if selected_metric == "quantity" %}
+                                            {{ row.total|floatformat:0 }}
+                                        {% else %}
+                                            {{ row.total|floatformat:2 }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>
+                    No imported data matched these filters.
+                </p>
+            {% endif %}
+        </section>
+    </main>
+{% if table_rows %}
+    {{ month_labels|json_script:"chart-labels-data" }}
+    {{ chart_datasets|json_script:"chart-datasets-data" }}
+
+    <script>
+        const chartLabels = JSON.parse(
+            document.getElementById(
+                "chart-labels-data"
+            ).textContent
+        );
+
+        const chartDatasets = JSON.parse(
+            document.getElementById(
+                "chart-datasets-data"
+            ).textContent
+        );
+
+        const canvas = document.getElementById(
+            "categoryTrendChart"
+        );
+
+        new Chart(canvas, {
+            type: "line",
+
+            data: {
+                labels: chartLabels,
+                datasets: chartDatasets,
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false,
+                },
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+
+                                if (value === null) {
+                                    return (
+                                        `${context.dataset.label}: ` +
+                                        "No data"
+                                    );
+                                }
+
+                                return (
+                                    `${context.dataset.label}: ` +
+                                    value.toLocaleString()
+                                );
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    </script>
+{% endif %}
+</body>
+</html>
